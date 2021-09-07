@@ -1,0 +1,59 @@
+import aiofiles,aiohttp,asyncio,time,os
+from lxml import etree
+def cc(rd,dz):
+    with open(rf'{dz}\quanwen.txt','a',encoding='utf-8') as f:
+        f.write(f'{rd}\n')
+        print('搞了一章')
+def dq(aa,dz):
+    for i in range(1,aa+1):
+        try:
+            with open(rf'{dz}\{i}.txt','r+',encoding='utf-8') as f:
+                a=f.read()
+                cc(a,dz)
+            os.remove(rf'{dz}\{i}.txt')
+            print("删了一章")
+        except:continue
+async def get(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            res=await resp.text()
+            return res
+async def xr(url,aa,name,dz):
+    try:
+        res=await get(url)
+        ress=etree.HTML(res)
+        a=ress.xpath('//*[@id="content"]/text()')
+        async with aiofiles.open(rf'{dz}\{aa}.txt','a',encoding='utf-8') as f:
+                await f.write(f'{name}\n') 
+        for i in a:
+            async with aiofiles.open(rf'{dz}\{aa}.txt','a',encoding='utf-8') as f:
+                await f.write(i.strip()) 
+        print(f'第{aa}章下好啦')
+    except:print(f'第{aa}章有问题，跳过了，地址是{url}')
+             
+async def main():
+    id=input("请输入该书的代码：")
+    dz=input("请输入要保存的文件夹路径：")
+    aa=0
+    taks=[]
+    new_url=f'https://http://www.wenbiqu.com/{id}/'
+    res=await get(new_url)
+    ress=etree.HTML(res)
+    a=ress.xpath('//*[@id="list"]/dl//a/@href')
+    name=ress.xpath('//*[@id="list"]/dl//a/text()')
+    for i in range(12,len(a)):
+        aa+=1
+        urll=f'https://http://www.wenbiqu.com{a[i]}'
+        new_name=name[i]
+        taks.append(asyncio.create_task(xr(urll,aa,new_name,dz)))
+    await asyncio.wait(taks) 
+    dq(aa,dz) 
+    print('全部搞定')
+ 
+ 
+if __name__=='__main__':
+    time1=time.time()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+    time2=time.time()
+    print(f'下载完成啦，一共用了{time2-time1}s')
